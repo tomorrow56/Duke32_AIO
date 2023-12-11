@@ -3,7 +3,7 @@
 Bit Trade Oneで多機能リモコンボード「Duke32AIO」のサポートページです。
 
 ## 製品情報・購入はこちら
-https://btoshop.jp/2020/05/28/admu32f/
+https://btoshop.jp/products/admu32f
 
 ### 2020年8月4日時点で公開しているソースコードは以下になります。
 - デフォルトで書き込んであるファームウエア(バイナリ)
