@@ -1,6 +1,6 @@
 # Duke32_AIO
 
-Bit Trade Oneで多機能リモコンボード「Duke32AIO」のサポートページです。
+Bit Trade Oneで販売中の多機能リモコンボード「Duke32AIO」のサポートページです。
 
 ## 製品情報・購入はこちら
 https://btoshop.jp/products/admu32f
