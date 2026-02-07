@@ -1,0 +1,36 @@
+# Mac OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Build artifacts
+*.o
+*.elf
+*.bin
+*.hex
+*.map
+*.lss
+*.sym
+
+# Arduino
+*.pyc
+__pycache__/
+*.tmp
+
+# Logs
+*.log
+
+# Temporary files
+*.temp
+*.bak

@@ -1,3 +1,10 @@
+/*
+  duke32.h - Duke32AIO Library Header
+  
+  Copyright (c) 2025 tomorrow56. All rights reserved.
+  SPDX-License-Identifier: MIT
+*/
+
 #ifndef _duke32_h_
 #define _duke32_h_
 
@@ -10,17 +17,17 @@
 // https://github.com/zhouhan0126/WebServer-esp32
 #include <WebServer.h>
 #include <ESPmDNS.h>
-// https://github.com/zhouhan0126/WIFIMANAGER-ESP32
-#include "WiFiManager.h"
+// SimpleWiFiManager
+ #include <SimpleWiFiManager.h>
 
 #include <WiFiUdp.h>
-#include <ArduinoOTA.h>
+#include <ESP32FwUploader.h>
 
 #include <Wire.h>
 
 uint64_t GetChipid();
 void WiFiMgrSetup(char WiFiAPname[]);
-void OTASetup(char OTAHostname[]);
+void FwUploaderSetup();
 
 /********************************
 * for LED Control

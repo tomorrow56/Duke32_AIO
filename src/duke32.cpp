@@ -1,4 +1,14 @@
+/*
+  duke32.cpp - Duke32AIO Library Implementation
+  
+  Copyright (c) 2025 tomorrow56. All rights reserved.
+  SPDX-License-Identifier: MIT
+*/
+
 #include "duke32.h"
+#include "esp_chip_info.h"
+#include "esp_system.h"
+#include "driver/ledc.h"
 
 /********************************
 * for Wifi Connection
@@ -57,22 +67,25 @@ uint64_t GetChipid(){
 }
 
 void WiFiMgrSetup(char WiFiAPname[]){
-  //WiFiManager
+  //SimpleWiFiManager
   Serial.printf("AP: %s\n", WiFiAPname);
   Serial.println("IP: 192.168.4.1");
 
   //Local intialization. Once its business is done, there is no need to keep it around
-  WiFiManager wifiManager;
+  SimpleWiFiManager wifiManager;
 
-  // WiFiManager̃
-  wifiManager.setDebugOutput(false);
+  // WebUIのタイトルを設定
+  wifiManager.setWebUITitle("Duke32 WiFi Manager");
+  // テーマをライトモードに設定
+  wifiManager.setWebUITheme(WM_WEBUI_THEME_LIGHT);
+  // テーマをダークモードに設定
+  // wifiManager.setWebUITheme(WM_WEBUI_THEME_DARK);
 
-  //set custom ip for portal
-  //wifiManager.setAPStaticIPConfig(IPAddress(10,0,1,1), IPAddress(10,0,1,1), IPAddress(255,255,255,0));
+  // WiFi接続試行のタイムアウトを10秒に設定
+  wifiManager.setConnectTimeout(10);
 
   //or use this for auto generated name ESP + ChipID
   wifiManager.autoConnect(WiFiAPname);
-  //wifiManager.autoConnect("NoseRadi32AP");
 
   //if you get here you have connected to the WiFi
   Serial.println("connected(^^)");
@@ -80,47 +93,34 @@ void WiFiMgrSetup(char WiFiAPname[]){
   Serial.println(WiFi.localIP());
 }
 
-void OTASetup(char OTAHostname[]){
-  // Port defaults to 3232
-  // ArduinoOTA.setPort(3232);
-
-  // Hostname defaults to esp3232-[MAC]
-  // ArduinoOTA.setHostname("myesp32");
-  ArduinoOTA.setHostname(OTAHostname);
-  Serial.printf("OTA Host: %s\n", OTAHostname);
-
-  // No authentication by default
-  // ArduinoOTA.setPassword("admin");
-
-  // Password can be set with it's md5 value as well
-  // MD5(admin) = 21232f297a57a5a743894a0e4a801fc3
-  // ArduinoOTA.setPasswordHash("21232f297a57a5a743894a0e4a801fc3");
-
-  ArduinoOTA.onStart([]() {
-    String type;
-    if (ArduinoOTA.getCommand() == U_FLASH)
-      type = "sketch";
-    else // U_SPIFFS
-      type = "filesystem";
-
-    // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
-    Serial.println("Start updating " + type);
+void FwUploaderSetup(){
+  // ESP32FwUploaderの設定
+  ESP32FwUploader.setDebug(true);
+  ESP32FwUploader.setDarkMode(false); // ライトモードを有効化
+  
+  // コールバックの設定
+  ESP32FwUploader.onStart([]() {
+    Serial.println("Firmware Update Started!");
   });
-  ArduinoOTA.onEnd([]() {
-    Serial.println("\nEnd");
+  
+  ESP32FwUploader.onProgress([](size_t current, size_t total) {
+    Serial.printf("Progress: %.1f%%\n", (float)current / total * 100.0);
   });
-  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+  
+  ESP32FwUploader.onEnd([](bool success) {
+    if (success) {
+      Serial.println("Firmware Update Successful!");
+    } else {
+      Serial.println("Firmware Update Failed!");
+    }
   });
-  ArduinoOTA.onError([](ota_error_t error) {
-    Serial.printf("Error[%u]: ", error);
-    if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
-    else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
-    else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
-    else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
-    else if (error == OTA_END_ERROR) Serial.println("End Failed");
+  
+  ESP32FwUploader.onError([](ESP32Fw_Error error, const String& message) {
+    Serial.printf("Update Error: %s\n", message.c_str());
   });
-  ArduinoOTA.begin();
+  
+  Serial.println("ESP32FwUploader initialized");
+  Serial.println("Open http://" + WiFi.localIP().toString() + "/update");
 }
 
 /********************************
@@ -128,11 +128,16 @@ void OTASetup(char OTAHostname[]){
 *********************************/
 void servoInit(){
   // Setup timer and attach timer to a servo pin
-  ledcSetup(LEDC_CHANNEL_0, LEDC_BASE_FREQ, LEDC_TIMER_BIT);
-  ledcAttachPin(Servo_PIN1, LEDC_CHANNEL_0);
+  #if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
+    (void)ledcAttach(Servo_PIN1, LEDC_BASE_FREQ, LEDC_TIMER_BIT);
+    (void)ledcAttach(Servo_PIN2, LEDC_BASE_FREQ, LEDC_TIMER_BIT);
+  #else
+    ledcSetup(LEDC_CHANNEL_0, LEDC_BASE_FREQ, LEDC_TIMER_BIT);
+    ledcAttachPin(Servo_PIN1, LEDC_CHANNEL_0);
 
-  ledcSetup(LEDC_CHANNEL_1, LEDC_BASE_FREQ, LEDC_TIMER_BIT);
-  ledcAttachPin(Servo_PIN2, LEDC_CHANNEL_1);
+    ledcSetup(LEDC_CHANNEL_1, LEDC_BASE_FREQ, LEDC_TIMER_BIT);
+    ledcAttachPin(Servo_PIN2, LEDC_CHANNEL_1);
+  #endif
 }
 
 void setServo(uint8_t servoNo, uint16_t angle){
@@ -152,7 +157,15 @@ void setServo(uint8_t servoNo, uint16_t angle){
 
   pwmWidth = ((srvMax - srvMin) / 180) * angle + srvMin;
 
-  ledcWrite(servoNo, pwmWidth);
+  #if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
+    if (servoNo == 0U) {
+      (void)ledcWrite(Servo_PIN1, pwmWidth);
+    } else {
+      (void)ledcWrite(Servo_PIN2, pwmWidth);
+    }
+  #else
+    ledcWrite(servoNo, pwmWidth);
+  #endif
 }
 
 /********************************
@@ -174,11 +187,16 @@ void Motor_INIT(){
 //  digitalWrite(MTR_BE, LOW);
 
   // Setup timer and attach timer to a servo pin
-  ledcSetup(LEDC_CHANNEL_2, LEDC_BASE_FREQ_MTR, LEDC_TIMER_BIT_MTR);
-  ledcAttachPin(MTR_AE, LEDC_CHANNEL_2);
+  #if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
+    (void)ledcAttach(MTR_AE, LEDC_BASE_FREQ_MTR, LEDC_TIMER_BIT_MTR);
+    (void)ledcAttach(MTR_BE, LEDC_BASE_FREQ_MTR, LEDC_TIMER_BIT_MTR);
+  #else
+    ledcSetup(LEDC_CHANNEL_2, LEDC_BASE_FREQ_MTR, LEDC_TIMER_BIT_MTR);
+    ledcAttachPin(MTR_AE, LEDC_CHANNEL_2);
 
-  ledcSetup(LEDC_CHANNEL_3, LEDC_BASE_FREQ_MTR, LEDC_TIMER_BIT_MTR);
-  ledcAttachPin(MTR_BE, LEDC_CHANNEL_3);
+    ledcSetup(LEDC_CHANNEL_3, LEDC_BASE_FREQ_MTR, LEDC_TIMER_BIT_MTR);
+    ledcAttachPin(MTR_BE, LEDC_CHANNEL_3);
+  #endif
 }
 
 void setMotorSpeed(uint8_t motorNo, uint8_t speed){
@@ -194,7 +212,15 @@ void setMotorSpeed(uint8_t motorNo, uint8_t speed){
     speed = 255;
   }
 
-  ledcWrite(motorNo, speed);
+  #if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
+    if (motorNo == MotorL) {
+      (void)ledcWrite(MTR_AE, speed);
+    } else {
+      (void)ledcWrite(MTR_BE, speed);
+    }
+  #else
+    ledcWrite(motorNo, speed);
+  #endif
 }
 
 void motorL_forward(uint8_t speed){

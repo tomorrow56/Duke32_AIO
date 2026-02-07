@@ -1,0 +1,33 @@
+#######################################
+# Syntax Definition for Duke32 Library #
+#######################################
+
+# Function names
+GetChipid	KEYWORD_L1
+WiFiMgrSetup	KEYWORD_L1
+FwUploaderSetup	KEYWORD_L1
+setMotorSpeed	KEYWORD_L1
+motorL_forward	KEYWORD_L1
+motorL_back	KEYWORD_L1
+motorL_stop	KEYWORD_L1
+motorR_forward	KEYWORD_L1
+motorR_back	KEYWORD_L1
+motorR_stop	KEYWORD_L1
+motor_stop	KEYWORD_L1
+servo_write	KEYWORD_L1
+servo_write_us	KEYWORD_L1
+led_write	KEYWORD_L1
+
+# ESP32FwUploader
+ESP32FwUploader	KEYWORD_L1
+
+# Constants
+NEO_PIN	KEYWORD_L1
+Servo_PIN1	KEYWORD_L1
+Servo_PIN2	KEYWORD_L1
+MotorL	KEYWORD_L1
+MotorR	KEYWORD_L1
+LEDC_CHANNEL_0	KEYWORD_L1
+LEDC_CHANNEL_1	KEYWORD_L1
+LEDC_TIMER_BIT	KEYWORD_L1
+LEDC_BASE_FREQ	KEYWORD_L1

@@ -1,13 +1,41 @@
-#include "duke32.h"
+/*
+  ESP32_WebserverSample.ino - Duke32AIO Web Server Sample
+  
+  Copyright (c) 2025 tomorrow56. All rights reserved.
+  SPDX-License-Identifier: MIT
+  
+  ## 必要な外部ライブラリ
+  
+  このスケッチをコンパイルするには、以下の外部ライブラリを別途インストールする必要があります。
+  
+  ### SimpleWiFiManager
+  WiFi設定を保存し、キャプティブポータル経由で簡単にネットワーク接続を設定するライブラリです。
+  
+  - GitHub: https://github.com/tomorrow56/SimpleWiFiManager
+  - インストール方法:
+    1. 上記GitHubリポジトリにアクセス
+    2. 「Code」→「Download ZIP」でZIPファイルをダウンロード
+    3. ArduinoIDEの「スケッチ」→「ライブラリをインクルード」→「.ZIP形式のライブラリをインストール」を選択
+    4. ダウンロードしたZIPファイルを選択してインストール
+  
+  ### ESP32FwUploader
+  WebベースのOTA（Over-The-Air）ファームウェア更新機能を提供するライブラリです。
+  
+  - GitHub: https://github.com/tomorrow56/ESP32FwUploader
+  - インストール方法:
+    1. 上記GitHubリポジトリにアクセス
+    2. 「Code」→「Download ZIP」でZIPファイルをダウンロード
+    3. ArduinoIDEの「スケッチ」→「ライブラリをインクルード」→「.ZIP形式のライブラリをインストール」を選択
+    4. ダウンロードしたZIPファイルを選択してインストール
+*/
+
+#include <duke32.h>
 
 #define usesoftAP
+#define useOTA
 
 //#define useOLED
 #define useLED
-
-#ifndef usesoftAP
-  #define useOTA
-#endif
 
 //#define DEBUG
 
@@ -15,17 +43,20 @@
 * for Wifi Connection
 *********************************/
 #include "WebPage.h"
-char OTAHostPrefix[]= "ESP32OTA-";
 char WiFiAPPrefix[] = "ESP32-";
 
 char WiFiAPname[256];
-char OTAHostname[256];
 
 #ifdef usesoftAP
   const char passwd[] = "esp32";
 #endif
 
+#ifndef usesoftAP
+SimpleWiFiManager wifiManager;
+#endif
+
 WiFiServer server(80);
+WebServer otaServer(8080);
 
 String header;
 
@@ -153,7 +184,14 @@ void setup() {
     Serial.print("AP name: ");
     Serial.println(WiFiAPname);
   #else
-    WiFiMgrSetup(WiFiAPname);
+    wifiManager.setWebUITitle("Duke32 WiFi Manager");
+    wifiManager.setWebUITheme(WM_WEBUI_THEME_LIGHT);
+    wifiManager.setConnectTimeout(10);
+
+    if (!wifiManager.autoConnect(WiFiAPname)) {
+      ESP.restart();
+      delay(1000);
+    }
 
     #ifdef useOLED
       display.clear();
@@ -168,9 +206,9 @@ void setup() {
   delay(1000);
 
   #ifdef useOTA
-    sprintf(OTAHostname, "%s%04X", OTAHostPrefix, (uint16_t)Chipid);
-  
-    OTASetup(OTAHostname);
+    FwUploaderSetup();
+    ESP32FwUploader.begin(&otaServer);
+    otaServer.begin();
   #endif
 
   Serial.print("IP address: ");
@@ -207,7 +245,8 @@ void loop(){
   #endif
 
   #ifdef useOTA
-    ArduinoOTA.handle();
+    ESP32FwUploader.loop();
+    otaServer.handleClient();
   #endif
 
   WiFiClient client = server.available();   // Listen for incoming clients
