@@ -74,11 +74,11 @@ void setServo(uint8_t servoNo, uint16_t angle);
 
 void Motor_INIT();
 void setMotorSpeed(uint8_t motorNo, uint8_t speed);
-void motorL_forward();
-void motorL_back();
+void motorL_forward(uint8_t speed);
+void motorL_back(uint8_t speed);
 void motorL_stop();
-void motorR_forward();
-void motorR_back();
+void motorR_forward(uint8_t speed);
+void motorR_back(uint8_t speed);
 void motorR_stop();
 void motor_stop();
 void motor_forward();
